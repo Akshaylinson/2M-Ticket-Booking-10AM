@@ -1,4 +1,4 @@
-﻿# 2M Ticket Booking
+# 2M Ticket Booking
 
 A production-oriented distributed ticket booking platform inspired by IRCTC, Ticketmaster, and BookMyShow.
 
