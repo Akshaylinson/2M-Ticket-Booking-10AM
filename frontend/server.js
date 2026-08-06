@@ -67,12 +67,24 @@ const server = http.createServer(async (req, res) => {
     await serveFile(res, join(ROOT, 'index.html'));
     return;
   }
+  if (url.pathname === '/spike' || url.pathname === '/spike.html') {
+    await serveFile(res, join(ROOT, 'spike.html'));
+    return;
+  }
   if (url.pathname === '/app.js') {
     await serveFile(res, join(ROOT, 'app.js'));
     return;
   }
+  if (url.pathname === '/spike.js') {
+    await serveFile(res, join(ROOT, 'spike.js'));
+    return;
+  }
   if (url.pathname === '/styles.css') {
     await serveFile(res, join(ROOT, 'styles.css'));
+    return;
+  }
+  if (url.pathname === '/spike.css') {
+    await serveFile(res, join(ROOT, 'spike.css'));
     return;
   }
   if (url.pathname === '/favicon.ico') {

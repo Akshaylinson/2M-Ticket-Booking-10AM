@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import random
+import string
 from types import SimpleNamespace
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import func, select
@@ -45,6 +48,7 @@ admin_router = APIRouter(prefix='/admin', tags=['admin'])
 health_router = APIRouter(tags=['health'])
 ws_router = APIRouter(tags=['websocket'])
 metrics_router = APIRouter(tags=['metrics'])
+spike_router = APIRouter(prefix='/spike', tags=['spike'])
 
 
 def get_app_services(app: FastAPI):
@@ -211,8 +215,74 @@ async def websocket_updates(websocket: WebSocket):
         return
 
 
+@spike_router.post('/simulate')
+async def spike_simulate(request: Request, db: Session = Depends(get_db)):
+    """Fire a burst of fake booking requests to simulate a 10:00 AM spike."""
+    services = get_app_services(request.app)
+    broadcaster = services.broadcaster
+
+    # Resolve the first available event
+    event = db.scalar(select(Event).order_by(Event.id.asc()))
+    if not event:
+        raise HTTPException(status_code=400, detail='No events found. Seed a demo event first.')
+
+    seats = list(db.scalars(select(Seat).where(Seat.event_id == event.id, Seat.status == SeatStatus.available).order_by(Seat.seat_number.asc())))
+    if not seats:
+        raise HTTPException(status_code=400, detail='No available seats for this event.')
+
+    total_fake_users = min(len(seats) + 20, 60)  # slightly more users than seats
+    seat_pool = [s.seat_number for s in seats]
+
+    await broadcaster.publish({'type': 'spike_start', 'users': total_fake_users, 'seats': len(seat_pool), 'event_id': event.id})
+
+    async def run_spike():
+        tasks = []
+        for i in range(total_fake_users):
+            suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
+            email = f'spike-{suffix}@demo.com'
+            seat = seat_pool[i % len(seat_pool)]
+            tasks.append(_fake_booking(db_factory=lambda: SessionLocal(), services=services, email=email, event_id=event.id, seat=seat, user_index=i))
+        await asyncio.gather(*tasks)
+        await broadcaster.publish({'type': 'spike_done', 'total': total_fake_users})
+
+    asyncio.create_task(run_spike())
+    return {'status': 'spike_launched', 'users': total_fake_users, 'event_id': event.id}
+
+
+async def _fake_booking(db_factory, services, email: str, event_id: int, seat: str, user_index: int):
+    from app.core.security import hash_password
+    db = db_factory()
+    try:
+        # Register or reuse user
+        user = db.scalar(select(User).where(User.email == email))
+        if not user:
+            user = User(email=email, password_hash=hash_password('spike123'), role=UserRole.user)
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+
+        await services.broadcaster.publish({'type': 'user_queued', 'user': email, 'seat': seat, 'position': user_index + 1})
+        await asyncio.sleep(random.uniform(0, 0.4))  # stagger arrivals
+
+        idem_key = f'spike-{user.id}-{seat}-{event_id}'
+        request = await services.bookings.enqueue(
+            db,
+            user_id=user.id,
+            event_id=event_id,
+            seat_numbers=[seat],
+            idempotency_key=idem_key,
+            payment_method='demo',
+        )
+        await services.broadcaster.publish({'type': 'seat_attempt', 'user': email, 'seat': seat, 'request_id': request.id, 'status': request.status.value})
+    except Exception as exc:
+        await services.broadcaster.publish({'type': 'spike_error', 'user': email, 'seat': seat, 'error': str(exc)})
+    finally:
+        db.close()
+
+
 def build_app() -> FastAPI:
     app = FastAPI(title=settings.app_name, docs_url='/docs' if settings.docs_enabled else None, redoc_url=None)
+    app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'])
     Base.metadata.create_all(bind=engine)
 
     broadcaster = EventBroadcaster()
@@ -257,4 +327,5 @@ def build_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(metrics_router)
     app.include_router(ws_router)
+    app.include_router(spike_router)
     return app

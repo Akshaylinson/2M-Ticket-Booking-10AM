@@ -223,12 +223,13 @@ class BookingService:
                     request.status = BookingStatus.confirmed
                     db.commit()
                     self.metrics.inc('bookings_confirmed')
-                    await self.broadcaster.publish({'type': 'booking_confirmed', 'booking_ref': booking.booking_ref, 'request_id': request.id})
+                    await self.broadcaster.publish({'type': 'booking_confirmed', 'booking_ref': booking.booking_ref, 'request_id': request.id, 'user_id': booking.user_id, 'seats': [s.seat_number for s in booking.seats]})
                     await self.notification_service.publish('booking_confirmed', {'booking_ref': booking.booking_ref, 'user_id': booking.user_id})
                     return booking
 
                 request.status = BookingStatus.failed
                 db.commit()
+                await self.broadcaster.publish({'type': 'booking_failed', 'request_id': request.id, 'user_id': request.user_id, 'seats': request.seat_numbers_json})
                 return None
             finally:
                 for key in seat_keys:
