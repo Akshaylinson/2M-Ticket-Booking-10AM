@@ -1,40 +1,40 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 from app.models import BookingStatus, PaymentStatus, SeatStatus, UserRole
 
 
 class TokenResponse(BaseModel):
     access_token: str
-    token_type: str = "bearer"
+    token_type: str = 'bearer'
 
 
 class UserCreate(BaseModel):
-    email: EmailStr
+    email: str = Field(min_length=3)
     password: str = Field(min_length=8)
     role: UserRole = UserRole.user
 
 
 class UserRead(BaseModel):
     id: int
-    email: EmailStr
+    email: str
     role: UserRole
     created_at: datetime
 
-    model_config = {"from_attributes": True}
+    model_config = {'from_attributes': True}
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str = Field(min_length=3)
     password: str
 
 
 class EventCreate(BaseModel):
     title: str
-    description: str = ""
+    description: str = ''
     venue: str
     starts_at: datetime
     seat_numbers: list[str] | None = None
@@ -51,7 +51,7 @@ class EventRead(BaseModel):
     total_seats: int
     created_by: int | None
 
-    model_config = {"from_attributes": True}
+    model_config = {'from_attributes': True}
 
 
 class SeatRead(BaseModel):
@@ -62,14 +62,14 @@ class SeatRead(BaseModel):
     reserved_by_user_id: int | None
     reserved_until: datetime | None
 
-    model_config = {"from_attributes": True}
+    model_config = {'from_attributes': True}
 
 
 class BookingRequestCreate(BaseModel):
     event_id: int
     seat_numbers: list[str]
     idempotency_key: str
-    payment_method: str = "demo"
+    payment_method: str = 'demo'
 
 
 class BookingRequestRead(BaseModel):
@@ -86,7 +86,7 @@ class BookingRequestRead(BaseModel):
     created_at: datetime
     updated_at: datetime | None = None
 
-    model_config = {"from_attributes": True}
+    model_config = {'from_attributes': True}
 
 
 class BookingSeatRead(BaseModel):
@@ -103,7 +103,7 @@ class PaymentRead(BaseModel):
     amount: float
     transaction_ref: str | None
 
-    model_config = {"from_attributes": True}
+    model_config = {'from_attributes': True}
 
 
 class BookingRead(BaseModel):
@@ -120,7 +120,7 @@ class BookingRead(BaseModel):
     seats: list[BookingSeatRead] = []
     payment: PaymentRead | None = None
 
-    model_config = {"from_attributes": True}
+    model_config = {'from_attributes': True}
 
 
 class BookingQueueResponse(BaseModel):
@@ -149,4 +149,3 @@ class HealthResponse(BaseModel):
 
 class MetricsResponse(BaseModel):
     metrics: dict[str, int | float]
-

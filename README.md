@@ -1,51 +1,30 @@
-# 2M Ticket Booking
+﻿# 2M Ticket Booking
 
-Production-oriented distributed ticket booking platform inspired by IRCTC, BookMyShow, and Ticketmaster.
+A production-oriented distributed ticket booking platform inspired by IRCTC, Ticketmaster, and BookMyShow.
 
-This repo is built from `core.md` and `build.md` and demonstrates:
+The project was built from `core.md` and `build.md` and now includes:
 
 - JWT auth
 - Event and seat management
-- Queue-based booking flow
-- Redis-style seat locking abstraction
-- Database-backed booking safety
+- Queue-based booking processing
+- Booking idempotency and seat locking
 - Payment simulation
-- Notification broadcast hooks
-- Admin and observability endpoints
-- FastAPI backend and React/Vite frontend scaffold
+- Admin overview and metrics
+- WebSocket update hooks
+- React + Vite dashboard scaffold
+- Docker Compose deployment
+- Architecture, API, schema, and scaling docs
+- Load testing script
 
-## Project Layout
+## Layout
 
-- `backend/` FastAPI service, SQLAlchemy models, tests, and worker
-- `frontend/` React + Vite dashboard scaffold
-- `docker-compose.yml` Full local stack
-- `core.md` Product/architecture brief
-- `build.md` Build prompt and phased requirements
+- `backend/` FastAPI service, SQLAlchemy models, worker, and tests
+- `frontend/` React + Vite dashboard
+- `docs/` architecture and deployment documentation
+- `loadtest/` k6 booking stress script
+- `docker-compose.yml` local stack with Postgres and Redis
 
-## What is implemented
-
-- Authentication with a custom JWT implementation
-- Admin-only event creation
-- Seat generation and seat map endpoints
-- Booking requests pushed into a queue
-- Background worker that processes queued requests
-- Per-seat distributed-lock abstraction
-- Transactional seat reservation and release
-- Idempotency on booking requests
-- Payment success/failure simulation
-- Booking cancellation
-- Metrics and health endpoints
-- WebSocket broadcast hook for live updates
-
-## What is stubbed or simplified
-
-- Real Redis and Kafka adapters are represented by in-memory development implementations
-- The frontend is scaffolded but intentionally minimal
-- Prometheus/Grafana and load testing scripts are documented, with room to extend
-
-## Run Locally
-
-### Backend
+## Backend
 
 ```bash
 cd backend
@@ -55,14 +34,14 @@ pip install -e ".[dev]"
 uvicorn app.main:app --reload
 ```
 
-### Tests
+## Tests
 
 ```bash
 cd backend
 pytest
 ```
 
-### Frontend
+## Frontend
 
 ```bash
 cd frontend
@@ -70,7 +49,13 @@ npm install
 npm run dev
 ```
 
-## API Overview
+## Docker Compose
+
+```bash
+docker compose up --build
+```
+
+## API
 
 - `POST /auth/register`
 - `POST /auth/login`
@@ -89,24 +74,19 @@ npm run dev
 - `GET /readyz`
 - `WS /ws/updates`
 
-## Safety strategy
+## Docs
 
-The booking pipeline uses multiple safety layers:
+- [Architecture](docs/architecture.md)
+- [Database Schema](docs/database-schema.md)
+- [API Reference](docs/api.md)
+- [Sequence Diagrams](docs/sequence-diagrams.md)
+- [Deployment Guide](docs/deployment.md)
+- [Scaling Strategy](docs/scaling.md)
+- [Failure Recovery](docs/failure-recovery.md)
+- [Load Testing](docs/load-testing.md)
 
-1. Booking request idempotency
-2. Seat-level locks
-3. Transactional seat reservation
-4. Unique booking constraints
-5. Worker-based processing
-6. Atomic confirmation or rollback
+## Notes
 
-## Next steps
-
-If you want, I can keep going and add:
-
-1. Real Redis and RabbitMQ adapters
-2. Full React seat-map UI
-3. Alembic migrations
-4. k6/Locust load tests
-5. Prometheus and Grafana config
-
+- The backend uses SQLite by default for local development and tests.
+- The Docker Compose stack switches the backend to PostgreSQL.
+- Redis and Kafka/RabbitMQ are represented by production-friendly abstractions so the design is ready for swapping in external infrastructure.
