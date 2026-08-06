@@ -135,6 +135,11 @@ function connectWS() {
     try { ev = JSON.parse(data); } catch { return; }
 
     switch (ev.type) {
+      case 'spike_reset':
+        log(`🔄 Seats reset for event #${ev.event_id} — ready for spike`, 'spike');
+        for (const s of Object.keys(state.seats)) state.seats[s] = 'available';
+        renderSeatMap();
+        break;
       case 'spike_start':
         state.stats.total = ev.users;
         log(`⚡ Spike started — ${ev.users} users racing for ${ev.seats} seats`, 'spike');
@@ -320,8 +325,14 @@ async function launchSpike() {
   if (!evOk) { state.spikeRunning = false; updateSpikeBtn(); return; }
   log('Launching spike simulation…', 'spike');
   try {
-    const r = await api('/spike/simulate', { method: 'POST' });
+    const r = await api('/spike/simulate?reset=true', { method: 'POST' });
     log(`Spike launched: ${r.users} fake users racing for event #${r.event_id}`, 'spike');
+    // reset local seat map to available
+    for (const s of Object.keys(state.seats)) state.seats[s] = 'available';
+    state.mySeats.clear();
+    state.stats = { queued: 0, confirmed: 0, failed: 0, total: 0 };
+    renderSeatMap();
+    renderStats();
   } catch (e) {
     log(`Spike failed: ${e.message}`, 'bad');
     state.spikeRunning = false;

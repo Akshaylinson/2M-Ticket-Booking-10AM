@@ -216,19 +216,39 @@ async def websocket_updates(websocket: WebSocket):
 
 
 @spike_router.post('/simulate')
-async def spike_simulate(request: Request, db: Session = Depends(get_db)):
+async def spike_simulate(request: Request, db: Session = Depends(get_db), reset: bool = False):
     """Fire a burst of fake booking requests to simulate a 10:00 AM spike."""
     services = get_app_services(request.app)
     broadcaster = services.broadcaster
 
-    # Resolve the first available event
-    event = db.scalar(select(Event).order_by(Event.id.asc()))
-    if not event:
-        raise HTTPException(status_code=400, detail='No events found. Seed a demo event first.')
+    # Pick the event with the most available seats
+    from sqlalchemy import func as sqlfunc
+    event_id_with_most = db.scalar(
+        select(Seat.event_id)
+        .where(Seat.status == SeatStatus.available)
+        .group_by(Seat.event_id)
+        .order_by(sqlfunc.count(Seat.id).desc())
+        .limit(1)
+    )
 
+    # If reset=true or no available seats found, reset all seats on the first event
+    if reset or event_id_with_most is None:
+        first_event = db.scalar(select(Event).order_by(Event.id.asc()))
+        if not first_event:
+            raise HTTPException(status_code=400, detail='No events found. Seed a demo event first.')
+        db.execute(
+            Seat.__table__.update()
+            .where(Seat.__table__.c.event_id == first_event.id)
+            .values(status=SeatStatus.available, reserved_by_user_id=None, reserved_until=None)
+        )
+        db.commit()
+        event_id_with_most = first_event.id
+        await broadcaster.publish({'type': 'spike_reset', 'event_id': first_event.id})
+
+    event = db.get(Event, event_id_with_most)
     seats = list(db.scalars(select(Seat).where(Seat.event_id == event.id, Seat.status == SeatStatus.available).order_by(Seat.seat_number.asc())))
     if not seats:
-        raise HTTPException(status_code=400, detail='No available seats for this event.')
+        raise HTTPException(status_code=400, detail='No available seats. Call with ?reset=true to reset seat statuses.')
 
     total_fake_users = min(len(seats) + 20, 60)  # slightly more users than seats
     seat_pool = [s.seat_number for s in seats]
