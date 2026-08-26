@@ -1,1 +1,33 @@
 
+
+
+
+
+
+
+
+﻿# Python
+__pycache__/
+*.pyc
+.venv/
+backend/.venv/
+.pytest_cache/
+.mypy_cache/
+backend/*.db
+backend/*.egg-info/
+backend/pytest-cache-files-*/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Env
+.env
+backend/.env
+frontend/.env
+
+# Build artifacts
+coverage/
+htmlcov/
+
+
