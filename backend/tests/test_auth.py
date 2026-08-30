@@ -21,13 +21,3 @@ def test_register_login_me():
 
 
 
-
-
-
-
-
-
-
-
-
-
