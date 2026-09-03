@@ -1,13 +1,1 @@
 
-{
-  "name": "2m-ticket-frontend",
-  "private": true,
-  "version": "0.1.0",
-  "type": "module",
-  "scripts": {
-    "dev": "node server.js",
-    "build": "node -e \"console.log('Static frontend: no build step required')\"",
-    "preview": "node server.js"
-  },
-  "dependencies": {}
-}
