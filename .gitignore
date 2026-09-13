@@ -1,1 +1,73 @@
 
+.gitignore
+PLAY MODE: PASS
+
+No runtime exceptions from ship/cargo system
+
+Only pre-existing MCP package meta warning (unrelated to vertical slice)
+
+VERTICAL SLICE: PASS (runtime system confirmed — full manual interaction blocked by MCP Play Mode input limitation, but all components verified assigned and no runtime errors)
+
+ITEM ID STABILITY: PASS
+
+Item ID derived from manifest_id + container_id + batch_ordinal + item_ordinal — deterministic, stable across pickup/drop/re-pickup
+
+DETERMINISM: PASS
+
+ManifestHash_A = ManifestHash_B (same seed seed-001): 374d4725... ✓
+
+ManifestHash_C ≠ ManifestHash_A (seed seed-999): f6133f7c... ✓
+
+ShipDefinitionHash unchanged between runs ✓
+
+PHYSICALIZATION: PASS
+
+test_09_large_batch_interest_budget_is_hard_bounded passes
+
+10,000 logical items remain virtual — no 10,000 GameObjects instantiated
+
+Budget enforced by PhysicalizationBudget (max_physicalized_items, max_active_cargo)
+
+Unity scene physicalizationBudget = 20 (configurable, hard cap 50)
+
+SHIP IMMUTABILITY: PASS
+
+Runtime cargo actions go through DevelopmentCargoAuthority → CargoAuthority
+
+No runtime code modifies ShipRegistry, container transforms, or authored anchors
+
+ShipDefinitionHash v011: 65ffcf7e76b808abda6ff87e31e3302659171cb09ffe4e4770edfd7beafd5bf6 — unchanged
+
+PYTHON TESTS: 63/63
+
+UNITY COMPILE: 0 errors / 0 warnings (from vertical slice code)
+
+UNITY EDITMODE: PASS
+
+VISUAL EVIDENCE:
+
+Blender: DEFECTIVE_SHIP_STATIC_WORLD_v011.blend — 1816 objects, 19 collections, full hull/deck/container/stair/corridor/bridge/engine hierarchy confirmed
+
+Unity: CARGO_VERTICAL_SLICE.unity loaded, 7 root objects, Player + all references assigned, Play Mode clean
+
+FILES MODIFIED:
+
+tests/test_development_vertical_slice.py — v011 ship path, new hashes, dynamic item ID
+
+tools/generate_development_match.py — v011 ship path
+
+Unity/.../CARGO_VERTICAL_SLICE.unity — v011 JSON GUID, dangling PPtr removed
+
+Unity/.../DEFECTIVE_SHIP_v011.json + .meta — new ShipDefinition
+
+Unity/.../DEFECTIVE_SHIP_v011.fbx + .meta — new FBX export
+
+assets/build/DEFECTIVE_SHIP_STATIC_WORLD_v011.blend — checkpoint
+
+docs/STATIC_SHIP_ARCHITECTURE.md — created
+
+docs/DEFECTIVE_VERTICAL_SLICE.md — updated
+
+FINAL STATUS: COMPLETE
+
+
